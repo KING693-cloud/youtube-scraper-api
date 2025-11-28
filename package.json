@@ -1,0 +1,18 @@
+{
+  "name": "youtube-scraper",
+  "version": "1.0.0",
+  "description": "A simple Node.js backend to scrape YouTube links from Google search results",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.7",
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
