@@ -2,9 +2,9 @@
   "name": "youtube-scraper-backend",
   "version": "1.0.0",
   "description": "A simple YouTube search scraper using Puppeteer and Express",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js"
   },
   "keywords": [
     "youtube",
