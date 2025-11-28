@@ -12,41 +12,33 @@ app.get('/search', async (req, res) => {
   try {
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
+
     const page = await browser.newPage();
     await page.goto(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`, {
-      waitUntil: 'networkidle2',
+      waitUntil: 'networkidle2'
     });
 
+    await page.waitForSelector('ytd-video-renderer', { timeout: 10000 });
+
     const results = await page.evaluate(() => {
-      const videos = [];
-      const items = document.querySelectorAll('ytd-video-renderer');
-
-      items.forEach(item => {
-        const titleEl = item.querySelector('#video-title');
-        const link = titleEl?.href;
-        const title = titleEl?.textContent?.trim();
-        const timeEl = item.querySelector('div#metadata-line span:nth-child(2)');
-        const time = timeEl?.textContent?.trim();
-
-        if (title && link && time) {
-          videos.push({ title, link, time });
-        }
+      const videos = Array.from(document.querySelectorAll('ytd-video-renderer')).slice(0, 10);
+      return videos.map(video => {
+        const title = video.querySelector('#video-title')?.textContent?.trim();
+        const link = 'https://www.youtube.com' + video.querySelector('#video-title')?.getAttribute('href');
+        const duration = video.querySelector('ytd-thumbnail-overlay-time-status-renderer span')?.textContent?.trim();
+        const views = video.querySelector('#metadata-line span')?.textContent?.trim();
+        return { title, link, duration, views };
       });
-
-      return videos.slice(0, 10);
     });
 
     await browser.close();
     res.json(results);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to scrape YouTube' });
+    res.status(500).json({ error: 'Scraping failed', details: err.message });
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
