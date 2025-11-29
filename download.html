@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SOSAC - Downloads</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Segoe UI',sans-serif; background:#f0f2f5; }
+  
+  header {
+    display:flex; align-items:center; justify-content:space-between; padding:15px 20px;
+    background:linear-gradient(to right,#ff416c,#ff4b2b); color:white; position:sticky; top:0; z-index:100;
+  }
+  
+  .title { font-weight:bold; font-size:1.3em; flex:1; text-align:center; }
+  .back-btn { background:#fff; color:#333; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:bold; }
+  .back-btn:hover { background:#f0f0f0; }
+  
+  .tips-btn { background:#ffc107; color:#333; border:none; padding:8px 15px; border-radius:6px; cursor:pointer; font-weight:bold; display:none; }
+  .tips-btn.show { display:block; }
+  .tips-btn:hover { background:#ffb300; }
+  
+  .controls { display:flex; justify-content:center; padding:15px 20px; background:#fff; gap:10px; flex-wrap:wrap; }
+  .btn { padding:10px 15px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; }
+  .btn-clear { background:#ff4757; color:white; }
+  .btn-clear:hover { background:#ee3a43; }
+  .btn-refresh { background:#2575fc; color:white; }
+  .btn-refresh:hover { background:#1e5cb8; }
+  
+  .status { padding:15px 20px; text-align:center; font-weight:bold; }
+  .status.empty { color:#999; background:#f9f9f9; }
+  .status.filled { color:green; background:#f0fdf4; }
+  
+  .results { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px; padding:20px; }
+  
+  .video { background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 10px rgba(0,0,0,0.15); border:3px solid #92fe9d; }
+  .video:hover { box-shadow:0 5px 12px rgba(0,0,0,0.18); }
+  
+  .video-thumb { width:100%; height:200px; background:#000; position:relative; overflow:hidden; }
+  .video-thumb img { width:100%; height:100%; object-fit:cover; }
+  .video-thumb-overlay { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; opacity:0; }
+  .video:hover .video-thumb-overlay { opacity:1; }
+  .play-icon { font-size:3em; color:white; }
+  
+  .video-info { padding:15px; }
+  .video-title { font-size:0.95em; font-weight:bold; color:#333; margin:0 0 10px 0; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  
+  .video-actions { display:flex; gap:8px; flex-direction:column; }
+  .action-btn { padding:10px 12px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; font-size:0.9em; display:flex; align-items:center; justify-content:center; gap:5px; }
+  
+  .btn-play { background:linear-gradient(to right,#92fe9d,#00c9ff); color:white; }
+  .btn-play:hover { opacity:0.9; }
+  
+  .btn-download { background:linear-gradient(to right,#667eea,#764ba2); color:white; }
+  .btn-download:hover { opacity:0.9; }
+  
+  .btn-copy { background:linear-gradient(to right,#f093fb,#f5576c); color:white; }
+  .btn-copy:hover { opacity:0.9; }
+
+  .btn-remove { background:#ffb3b3; color:#d9534f; }
+  .btn-remove:hover { background:#ff9999; }
+
+  /* Link Copy Modal */
+  .copy-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+  .copy-modal.show {
+    display: flex;
+  }
+  .copy-modal-content {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    text-align: center;
+  }
+  .copy-modal-icon { font-size: 3em; margin-bottom: 15px; }
+  .copy-modal-title { font-size: 1.5em; font-weight: bold; color: #333; margin-bottom: 10px; }
+  .copy-modal-desc { color: #666; margin-bottom: 25px; font-size: 0.95em; line-height: 1.5; }
+  .copy-link-box {
+    background: #f5f5f5;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 25px;
+    word-break: break-all;
+    font-size: 0.85em;
+    color: #333;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  .copy-modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  .copy-btn {
+    flex: 1;
+    padding: 12px 30px;
+    background: linear-gradient(to right, #f093fb, #f5576c);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    font-size: 0.95em;
+  }
+  .copy-btn:hover { opacity: 0.9; }
+  .close-modal-btn {
+    flex: 1;
+    padding: 12px 30px;
+    background: #e0e0e0;
+    color: #333;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    font-size: 0.95em;
+  }
+  .close-modal-btn:hover { opacity: 0.9; }
+  
+  .empty-state { text-align:center; padding:60px 20px; }
+  .empty-icon { font-size:4em; margin-bottom:15px; }
+  .empty-text { font-size:1.1em; color:#666; margin-bottom:20px; }
+  .empty-btn { background:linear-gradient(to right,#2575fc,#6a11cb); color:white; padding:12px 30px; border-radius:6px; text-decoration:none; display:inline-block; cursor:pointer; border:none; font-weight:bold; }
+  .empty-btn:hover { opacity:0.9; }
+  
+  .spinner {
+    display:inline-block; width:40px; height:40px;
+    border:4px solid #f0f0f0; border-top:4px solid #667eea;
+    border-radius:50%; animation:spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform:rotate(0deg); }
+    100% { transform:rotate(360deg); }
+  }
+  
+  #notification {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: #4caf50;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 10000;
+    max-width: 300px;
+    font-weight: bold;
+    display: none;
+  }
+  
+  #notification.show {
+    display: block;
+  }
+  
+  
+  .loading-spinner { 
+    border:4px solid #f3f3f3; 
+    border-top:4px solid #667eea; 
+    border-radius:50%; 
+    width:40px; height:40px; 
+    animation:spin 1s linear infinite; 
+    margin:20px auto;
+  }
+  @keyframes spin { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
+  
+  .modal-loading {
+    text-align:center;
+    padding:30px;
+  }
+  
+  .tutorial-overlay {
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.75); display:none; z-index:10001;
+    align-items:center; justify-content:center;
+  }
+  
+  .tutorial-overlay.show {
+    display:flex;
+  }
+  
+  .tutorial-modal {
+    background:white; border-radius:16px; padding:30px;
+    max-width:500px; width:90%; max-height:90vh;
+    overflow-y:auto; box-shadow:0 10px 40px rgba(0,0,0,0.3);
+  }
+  
+  .tutorial-header {
+    font-size:1.8em; font-weight:bold;
+    background:linear-gradient(to right,#ff416c,#ff4b2b);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    background-clip:text; margin-bottom:20px;
+  }
+  
+  .tutorial-steps {
+    display:flex; flex-direction:column; gap:20px;
+  }
+  
+  .tutorial-step {
+    padding:15px; border-left:4px solid #667eea;
+    background:#f5f5f5; border-radius:8px;
+  }
+  
+  .tutorial-step-number {
+    display:inline-block; background:linear-gradient(to right,#667eea,#764ba2);
+    color:white; width:30px; height:30px; border-radius:50%;
+    text-align:center; line-height:30px; font-weight:bold;
+    margin-right:10px;
+  }
+  
+  .tutorial-step-title {
+    font-weight:bold; margin:8px 0; color:#333;
+    display:inline-block;
+  }
+  
+  .tutorial-step-desc {
+    font-size:0.9em; color:#666; margin-top:8px;
+  }
+  
+  .tutorial-actions {
+    display:flex; gap:10px; margin-top:20px;
+    justify-content:space-between;
+  }
+  
+  .tutorial-btn {
+    padding:12px 20px; border:none; border-radius:8px;
+    cursor:pointer; font-weight:bold; transition:0.3s;
+    flex:1; text-align:center;
+  }
+  
+  .tutorial-btn-skip {
+    background:#e0e0e0; color:#333;
+  }
+  
+  .tutorial-btn-skip:hover {
+    background:#d0d0d0;
+  }
+  
+  .tutorial-btn-done {
+    background:linear-gradient(to right,#667eea,#764ba2);
+    color:white;
+  }
+  
+  .tutorial-btn-done:hover {
+    opacity:0.9;
+  }
+
+  .format-modal {
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.7); display:none; z-index:10002;
+    align-items:center; justify-content:center; padding:20px;
+  }
+
+  .format-modal.show {
+    display:flex;
+  }
+
+  .format-modal-content {
+    background:white; border-radius:16px; padding:30px;
+    max-width:400px; width:100%; box-shadow:0 10px 40px rgba(0,0,0,0.3);
+  }
+
+  .convert-modal {
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:white; display:none; z-index:10003;
+    align-items:center; justify-content:center; padding:20px;
+  }
+
+  .convert-modal.show {
+    display:flex;
+  }
+
+  .convert-modal-content {
+    background:white; border-radius:16px; padding:40px;
+    max-width:500px; width:100%; box-shadow:0 10px 40px rgba(0,0,0,0.3);
+    text-align:center;
+  }
+
+  .convert-modal-header {
+    font-size:1.3em; font-weight:bold; color:#333; margin-bottom:20px;
+  }
+
+  .youtube-url-box {
+    background:#f5f5f5; padding:15px; border-radius:8px; margin-bottom:20px;
+    border:2px solid #667eea; word-break:break-all; font-family:monospace;
+    font-size:0.85em; color:#666;
+  }
+
+  .convert-spinner {
+    width:50px; height:50px; border:5px solid #f3f3f3;
+    border-top:5px solid #667eea; border-radius:50%;
+    animation:spin 1s linear infinite; margin:20px auto;
+  }
+
+  .converting-text {
+    font-size:1em; color:#666; margin-top:15px; font-weight:bold;
+  }
+
+  .converted-url-box {
+    background:#e8f5e9; padding:20px; border-radius:8px; margin-top:20px;
+    border:2px solid #4caf50; display:none;
+  }
+
+  .converted-url-box.show {
+    display:block;
+  }
+
+  .converted-label {
+    font-weight:bold; color:#2e7d32; margin-bottom:10px; font-size:0.95em;
+  }
+
+  .converted-link {
+    background:white; padding:12px; border-radius:6px; word-break:break-all;
+    font-family:monospace; font-size:0.8em; color:#1b5e20; max-height:100px;
+    overflow-y:auto; margin-bottom:15px; border:1px solid #4caf50;
+  }
+
+  .convert-close-btn {
+    background:linear-gradient(to right,#667eea,#764ba2); color:white;
+    padding:12px 30px; border:none; border-radius:8px; cursor:pointer;
+    font-weight:bold; transition:0.3s; width:100%;
+  }
+
+  .convert-close-btn:hover {
+    opacity:0.9;
+  }
+
+  .format-modal-title {
+    font-size:1.5em; font-weight:bold; color:#333;
+    margin-bottom:20px; text-align:center;
+  }
+
+  .format-options {
+    display:grid; grid-template-columns:1fr 1fr; gap:10px;
+    margin-bottom:20px;
+  }
+
+  .format-btn {
+    padding:15px 20px; border:2px solid #ddd;
+    border-radius:8px; background:white; cursor:pointer;
+    font-weight:bold; font-size:1em; transition:0.3s;
+    text-align:center;
+  }
+
+  .format-btn:hover {
+    border-color:#667eea; background:#f5f7ff;
+  }
+
+  .format-btn.selected {
+    border-color:#667eea; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:white;
+  }
+
+  .format-actions {
+    display:flex; gap:10px;
+  }
+
+  .format-action-btn {
+    flex:1; padding:12px 20px; border:none; border-radius:8px;
+    cursor:pointer; font-weight:bold; transition:0.3s;
+  }
+
+  .format-action-btn.cancel {
+    background:#e0e0e0; color:#333;
+  }
+
+  .format-action-btn.cancel:hover {
+    background:#d0d0d0;
+  }
+
+  .format-action-btn.download {
+    background:linear-gradient(to right, #667eea, #764ba2);
+    color:white;
+  }
+
+  .format-action-btn.download:hover {
+    opacity:0.9;
+  }
+
+  .format-action-btn.download:disabled {
+    opacity:0.5;
+    cursor:not-allowed;
+  }
+
+  @media (max-width: 600px) {
+    .results { grid-template-columns:1fr; gap:15px; padding:15px; }
+    header { padding:12px 15px; }
+    .title { font-size:1.1em; }
+    .controls { padding:12px 15px; }
+    .modal-content { max-width:90%; }
+    .tutorial-modal { padding:20px; }
+    .tutorial-header { font-size:1.5em; }
+    .format-modal-content { padding:20px; }
+  }
+</style>
+</head>
+<body>
+<script>document.documentElement.style.background='#f0f2f5';</script>
+
+<header>
+  <button class="back-btn" onclick="window.location.href='index.html'">← BACK</button>
+  <span class="title">📥 Downloads</span>
+  <button class="tips-btn" id="tipsBtn" onclick="openTutorial()">💡 TIPS</button>
+</header>
+
+<div class="controls">
+  <button class="btn btn-refresh" onclick="loadDownloads(); alert('Queue refreshed!');">🔄 Refresh</button>
+  <button class="btn btn-clear" onclick="if(confirm('Clear all videos?')) { localStorage.setItem('sosacDownloads', JSON.stringify([])); loadDownloads(); }">🗑️ Clear All</button>
+</div>
+
+<div id="notification"></div>
+
+<!-- Copy Link Modal -->
+<div id="copyModal" class="copy-modal">
+  <div class="copy-modal-content">
+    <div class="copy-modal-icon">🔗</div>
+    <div class="copy-modal-title">You are about to copy the link</div>
+    <div class="copy-modal-desc">Copy this link now so you can paste it!</div>
+    <div class="copy-link-box" id="copyLinkText"></div>
+    <div class="copy-modal-buttons">
+      <button class="copy-btn" onclick="copyToClipboard()">📋 COPY</button>
+      <button class="close-modal-btn" onclick="closeCopyModal()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<div id="tutorialOverlay" class="tutorial-overlay">
+  <div class="tutorial-modal">
+    <div class="tutorial-header">🎬 How to Download Videos</div>
+    <div class="tutorial-steps">
+      <div class="tutorial-step">
+        <span class="tutorial-step-number">1</span>
+        <span class="tutorial-step-title">Your Queue</span>
+        <div class="tutorial-step-desc">Videos you added appear here. Each has 3 buttons.</div>
+      </div>
+      <div class="tutorial-step">
+        <span class="tutorial-step-number">2</span>
+        <span class="tutorial-step-title">Click DOWNLOAD</span>
+        <div class="tutorial-step-desc">Tap the ⬇️ DOWNLOAD button to start downloading.</div>
+      </div>
+      <div class="tutorial-step">
+        <span class="tutorial-step-number">3</span>
+        <span class="tutorial-step-title">Choose Format</span>
+        <div class="tutorial-step-desc">Pick MP3 (audio) or MP4 (video) and download!</div>
+      </div>
+    </div>
+    <div class="tutorial-actions">
+      <button class="tutorial-btn tutorial-btn-skip" onclick="skipTutorial()">Skip</button>
+      <button class="tutorial-btn tutorial-btn-done" onclick="closeTutorial()">Got It! 👍</button>
+    </div>
+  </div>
+</div>
+
+<div id="status" class="status"></div>
+<div id="results" class="results"></div>
+
+<script>
+const BACKEND_URL = window.location.origin;
+// Download backend - construct proper URL for Replit
+const DOWNLOAD_BACKEND = (() => {
+  const host = window.location.hostname;
+  const protocol = window.location.protocol;
+  // In Replit, port 3000 is accessed via the same domain
+  return `${protocol}//${host.replace(/^[^-]*/, (match) => match + '-3000')}`;
+})();
+let downloadedVideos = [];
+let refreshInterval = null;
+let currentDownloadUrl = '';
+let selectedFormat = 'mp3';
+
+function showNotification(message) {
+  const notif = document.getElementById('notification');
+  notif.textContent = message;
+  notif.classList.add('show');
+  setTimeout(() => {
+    notif.classList.remove('show');
+  }, 3000);
+}
+
+function loadDownloads(){
+  downloadedVideos = JSON.parse(localStorage.getItem('sosacDownloads')) || [];
+  renderDownloads();
+}
+
+function startAutoRefresh() {
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(() => {
+    const latest = JSON.parse(localStorage.getItem('sosacDownloads')) || [];
+    const latestStr = JSON.stringify(latest);
+    const currentStr = JSON.stringify(downloadedVideos);
+    if (latestStr !== currentStr) {
+      downloadedVideos = latest;
+      renderDownloads();
+    }
+  }, 1000);
+}
+
+window.addEventListener('storage', (e) => {
+  if (e.key === 'sosacDownloads') {
+    downloadedVideos = JSON.parse(e.newValue) || [];
+    renderDownloads();
+  }
+});
+
+function getThumbnailFromUrl(videoUrl) {
+  const match = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? `https://i.ytimg.com/vi/${match[1]}/hq720.jpg` : 'https://via.placeholder.com/320x200?text=Video';
+}
+
+function renderDownloads(){
+  const results = document.getElementById('results');
+  const status = document.getElementById('status');
+  
+  checkShowTips();
+  
+  results.innerHTML = '';
+  
+  if (downloadedVideos.length === 0) {
+    results.innerHTML = `
+      <div style="grid-column:1/-1;">
+        <div class="empty-state">
+          <div class="empty-icon">📺</div>
+          <div class="empty-text">No videos in your download queue yet</div>
+          <button class="empty-btn" onclick="window.location.href='index.html'">Search Videos</button>
+        </div>
+      </div>
+    `;
+    status.innerHTML = '<div class="status empty">📭 Your queue is empty. Start searching!</div>';
+    status.className = 'status empty';
+    return;
+  }
+  
+  status.innerHTML = `<div class="status filled">✓ ${downloadedVideos.length} video${downloadedVideos.length > 1 ? 's' : ''} in queue</div>`;
+  status.className = 'status filled';
+  
+  downloadedVideos.forEach((video, index) => {
+    const videoEl = document.createElement('div');
+    videoEl.className = 'video';
+    const thumbUrl = getThumbnailFromUrl(video.url);
+    videoEl.innerHTML = `
+      <div class="video-thumb">
+        <img src="${thumbUrl}" alt="${video.title}" onerror="this.src='https://via.placeholder.com/320x200?text=Video'">
+        <div class="video-thumb-overlay">
+          <div class="play-icon">▶️</div>
+        </div>
+      </div>
+      <div class="video-info">
+        <h3 class="video-title">${video.title}</h3>
+        <div class="video-actions">
+          <button class="action-btn btn-play" onclick="playVideo('${video.url.replace(/'/g, "\\'")}', '${video.title.replace(/'/g, "\\'")}')">▶️ WATCH</button>
+          <button class="action-btn btn-download" onclick="showCopyBeforeDownload('${video.url.replace(/'/g, "\\'")}', 'mp3')">🎵 MP3</button>
+          <button class="action-btn btn-download" onclick="showCopyBeforeDownload('${video.url.replace(/'/g, "\\'")}', 'mp4')">🎬 MP4</button>
+          <button class="action-btn btn-remove" onclick="if(confirm('Remove this video?')) { downloadedVideos.splice(${index}, 1); localStorage.setItem('sosacDownloads', JSON.stringify(downloadedVideos)); renderDownloads(); }">✕ REMOVE</button>
+        </div>
+      </div>
+    `;
+    results.appendChild(videoEl);
+  });
+}
+
+function playVideo(videoUrl, title){
+  // Navigate to watch page with autoplay enabled
+  window.location.href = `watch.html?url=${encodeURIComponent(videoUrl)}&title=${encodeURIComponent(title)}&from=download.html&autoplay=1`;
+}
+
+function selectFormat(format) {
+  selectedFormat = format;
+  document.querySelectorAll('.format-btn').forEach(btn => btn.classList.remove('selected'));
+  event.target.classList.add('selected');
+}
+
+// Show copy modal before downloading
+function showCopyBeforeDownload(youtubeUrl, format) {
+  document.getElementById('copyLinkText').textContent = youtubeUrl;
+  document.getElementById('copyModal').classList.add('show');
+  window.pendingDownloadUrl = youtubeUrl;
+  window.pendingDownloadFormat = format;
+}
+
+// Direct download - opens ytdown.to/en2/ with pre-loaded YouTube URL
+function downloadDirect(youtubeUrl, format) {
+  // Open ytdown.to/en2/ with pre-loaded URL using proper format
+  // ytdown.to uses hash-based routing for URL parameters
+  const ytdownUrl = `https://ytdown.to/en2/#${encodeURIComponent(youtubeUrl)}`;
+  window.open(ytdownUrl, '_blank');
+  showNotification('✓ Opening downloader...');
+}
+
+function showCopyModal(videoUrl) {
+  document.getElementById('copyLinkText').textContent = videoUrl;
+  document.getElementById('copyModal').classList.add('show');
+}
+
+function closeCopyModal() {
+  document.getElementById('copyModal').classList.remove('show');
+}
+
+function copyToClipboard() {
+  const linkText = document.getElementById('copyLinkText').textContent;
+  navigator.clipboard.writeText(linkText).then(() => {
+    showNotification('✓ Link copied to clipboard!');
+    setTimeout(() => {
+      closeCopyModal();
+      // Auto-open downloader after copy
+      if (window.pendingDownloadUrl) {
+        const ytdownUrl = `https://ytdown.to/en2/#${encodeURIComponent(window.pendingDownloadUrl)}`;
+        window.open(ytdownUrl, '_blank');
+        showNotification('✓ Opening downloader...');
+        window.pendingDownloadUrl = null;
+      }
+    }, 500);
+  }).catch(err => {
+    showNotification('❌ Failed to copy');
+  });
+}
+
+function extractVideoId(url) {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/
+  ];
+  
+  for (let pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+function removeVideo(index){
+  const videoTitle = downloadedVideos[index].title;
+  if(confirm(`Remove "${videoTitle}" from queue?`)) {
+    downloadedVideos.splice(index, 1);
+    localStorage.setItem('sosacDownloads', JSON.stringify(downloadedVideos));
+    renderDownloads();
+  }
+}
+
+function clearAll(){
+  if(confirm('Clear all videos from your queue? This cannot be undone.')) {
+    downloadedVideos = [];
+    localStorage.setItem('sosacDownloads', JSON.stringify(downloadedVideos));
+    renderDownloads();
+  }
+}
+
+function refreshDownloads(){
+  loadDownloads();
+}
+
+function showTutorial() {
+  const tutorial = document.getElementById('tutorialOverlay');
+  if (tutorial) {
+    tutorial.classList.add('show');
+  }
+}
+
+function closeTutorial() {
+  const tutorial = document.getElementById('tutorialOverlay');
+  if (tutorial) {
+    tutorial.classList.remove('show');
+    localStorage.setItem('sosacTutorialSeen', 'true');
+  }
+}
+
+function skipTutorial() {
+  closeTutorial();
+  localStorage.setItem('sosacTutorialSeen', 'true');
+}
+
+function checkShowTips() {
+  const tutorialSeen = localStorage.getItem('sosacDownloadTutorialSeen');
+  const tipsBtn = document.getElementById('tipsBtn');
+  if (tutorialSeen && tipsBtn) {
+    tipsBtn.classList.add('show');
+  }
+}
+
+function openTutorial() {
+  window.open('tutor.html?mode=reopen', 'tutorial', 'width=700,height=800,left=100,top=100');
+}
+
+document.addEventListener('click', function(event) {
+  const tutorial = document.getElementById('tutorialOverlay');
+  if (tutorial && event.target === tutorial) {
+    closeTutorial();
+  }
+});
+
+loadDownloads();
+startAutoRefresh();
+checkShowTips();
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    loadDownloads();
+  } else {
+    if (refreshInterval) clearInterval(refreshInterval);
+  }
+});
+
+window.addEventListener('focus', () => {
+  loadDownloads();
+  startAutoRefresh();
+});
+
+window.addEventListener('beforeunload', () => {
+  if (refreshInterval) clearInterval(refreshInterval);
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(reg => console.log('✓ Service Worker registered'))
+      .catch(err => console.log('Service Worker error:', err));
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>SOSAC TV - Watch</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Segoe UI',sans-serif; background:#f0f2f5; display:flex; flex-direction:column; height:100vh; }
+  
+  header {
+    display:flex; align-items:center; justify-content:space-between; padding:15px 20px;
+    background:linear-gradient(to right,#ff416c,#ff4b2b); color:white; z-index:10;
+  }
+  
+  .title { font-weight:bold; font-size:1.3em; flex:1; text-align:center; }
+  
+  .btn { 
+    background:#fff; color:#333; border:none; padding:8px 12px; 
+    border-radius:6px; cursor:pointer; font-weight:bold; 
+    transition:0.3s;
+  }
+  .btn:hover { background:#f0f0f0; }
+  
+  main { 
+    flex:1; display:flex; flex-direction:column; align-items:center; 
+    justify-content:center; padding:20px; overflow:auto; 
+  }
+  
+  .video-box { 
+    width:100%; max-width:800px; background:white; border:3px solid #92fe9d; 
+    border-radius:12px; overflow:hidden; box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  }
+  
+  .video-player {
+    width:100%; aspect-ratio:16/9; background:#000; display:block;
+  }
+  
+  video {
+    width:100%; height:100%; display:block;
+  }
+  
+  .video-info { 
+    padding:20px; 
+  }
+  
+  .video-title { 
+    font-size:1.2em; font-weight:bold; color:#333; margin-bottom:15px; 
+  }
+  
+  .actions { 
+    display:flex; gap:10px; flex-wrap:wrap;
+  }
+  
+  .action-btn { 
+    padding:10px 15px; border:none; border-radius:6px; cursor:pointer; 
+    font-weight:bold; transition:0.3s;
+  }
+  
+  .btn-mp3 {
+    background:linear-gradient(to right,#ff6b6b,#ff8787); color:white;
+  }
+  .btn-mp3:hover { opacity:0.9; }
+  
+  #notification {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: #4caf50;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 10000;
+    animation: slideIn 0.3s ease-out;
+    max-width: 300px;
+    font-weight: bold;
+    display: none;
+  }
+  
+  #notification.show {
+    display: block;
+  }
+  
+  @keyframes slideIn {
+    from {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  .loading-pulse { 
+    background:linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size:200% 100%; 
+    animation:pulse 1.5s infinite;
+    height:450px;
+    border-radius:12px;
+  }
+  @keyframes pulse { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+
+  @media (max-width: 768px) {
+    main { padding:15px; }
+    .video-title { font-size:1em; }
+  }
+  
+  /* Landscape/Fullscreen Orientation */
+  @media (orientation: landscape) {
+    body { display:flex; flex-direction:column; }
+    header { display:none; }
+    main { padding:0; margin:0; width:100vw; height:100vh; }
+    .video-box { max-width:100%; width:100vw; height:100vh; border-radius:0; border:none; }
+    .video-player { aspect-ratio:unset; width:100vw; height:100vh; }
+    .video-info { display:none; }
+  }
+  
+  @supports (padding: max(0px)) {
+    @media (orientation: landscape) {
+      body { padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    }
+  }
+  
+  /* Fullscreen Mode */
+  iframe:fullscreen { width:100vw; height:100vh; }
+  :-webkit-full-screen iframe { width:100vw; height:100vh; }
+  :-moz-full-screen iframe { width:100vw; height:100vh; }
+</style>
+</head>
+<body>
+
+<header>
+  <button class="btn" onclick="goBack()">← BACK</button>
+  <span class="title">SOSAC TV</span>
+  <div></div>
+</header>
+
+<main>
+  <div class="video-box">
+    <div id="playerContainer" class="video-player">
+      <div class="loading-pulse"></div>
+    </div>
+    <div class="video-info">
+      <div class="video-title" id="videoTitle">Loading...</div>
+      <div class="actions">
+        <button class="action-btn btn-mp3" onclick="addToQueueWithNotification()" id="btnAddQueue" disabled>⬇️ ADD TO DOWNLOAD</button>
+      </div>
+      <div id="notification"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+
+// Support both 'url' (full YouTube URL) and 'v' (video ID) parameters
+let videoUrl = urlParams.get('url') || '';
+const videoId = urlParams.get('v');
+
+// If video ID is provided, convert to YouTube URL
+if (videoId && !videoUrl) {
+  videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+}
+
+const videoTitle = urlParams.get('title') || 'Video';
+const fromPage = urlParams.get('from') || 'index.html';
+
+const BACKEND_URL = window.location.origin;
+// Download backend - construct proper URL for Replit
+const DOWNLOAD_BACKEND = (() => {
+  const host = window.location.hostname;
+  const protocol = window.location.protocol;
+  // In Replit, port 3000 is accessed via the same domain
+  return `${protocol}//${host.replace(/^[^-]*/, (match) => match + '-3000')}`;
+})();
+
+// Load video player - YouTube embedded iframe (NOT Google conversion)
+window.addEventListener('load', async () => {
+  const container = document.getElementById('playerContainer');
+  
+  if (videoUrl) {
+    document.getElementById('videoTitle').textContent = decodeURIComponent(videoTitle);
+    document.getElementById('btnAddQueue').disabled = false;
+    
+    try {
+      // Extract video ID from YouTube URL
+      const videoIdMatch = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+      const embeddedId = videoIdMatch ? videoIdMatch[1] : null;
+      
+      if (!embeddedId) {
+        throw new Error('Invalid YouTube URL');
+      }
+      
+      console.log('[Video Player] Loading YouTube video:', embeddedId);
+      
+      container.innerHTML = '';
+      
+      // Create YouTube embedded iframe (NO ADS - using nocookie, with autoplay and sound)
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://www.youtube-nocookie.com/embed/${embeddedId}?autoplay=1&modestbranding=1&rel=0&controls=1`;
+      iframe.width = '100%';
+      iframe.height = '100%';
+      iframe.style.border = 'none';
+      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+      iframe.allowFullscreen = true;
+      // Block navigation to real YouTube
+      iframe.sandbox.add('allow-same-origin', 'allow-scripts', 'allow-presentation', 'allow-popups', 'allow-forms');
+      
+      // Force autoplay
+      iframe.setAttribute('autoplay', '1');
+      
+      container.appendChild(iframe);
+      
+      // Enable screen orientation changes
+      if (document.documentElement.requestFullscreen) {
+        iframe.addEventListener('fullscreenchange', () => {
+          if (document.fullscreenElement) {
+            // Allow device to rotate when in fullscreen
+            if (screen.orientation && screen.orientation.lock) {
+              screen.orientation.unlock();
+            }
+          }
+        });
+      }
+      
+      // Handle orientation changes
+      window.addEventListener('orientationchange', () => {
+        console.log('Screen orientation changed');
+      });
+      
+      console.log('[Video Player] ✅ YouTube video loaded successfully');
+    } catch (err) {
+      console.error('[Video Player] Error:', err.message);
+      container.innerHTML = '<div style="padding:50px; text-align:center; color:#d32f2f;"><div style="font-size:1.2em; margin-bottom:10px;">❌ Failed to load video</div><div style="font-size:0.9em; color:#999;">Invalid YouTube URL</div></div>';
+    }
+  } else {
+    container.innerHTML = '<div style="padding:50px; text-align:center; color:#999;">No video URL provided</div>';
+  }
+})
+
+function showNotification(message) {
+  const notif = document.getElementById('notification');
+  notif.textContent = message;
+  notif.classList.add('show');
+  setTimeout(() => {
+    notif.classList.remove('show');
+  }, 3000);
+}
+
+// Add video to download queue (manual add via button)
+function addToQueueWithNotification() {
+  if (!videoUrl) return;
+  
+  let queue = JSON.parse(localStorage.getItem('sosacDownloads')) || [];
+  const cleanTitle = decodeURIComponent(videoTitle).replace(/[<>:"/\\|?*]/g, '');
+  
+  // Check if video already in queue
+  const exists = queue.some(v => v.url === videoUrl);
+  if (exists) {
+    showNotification(`⚠️ Already in queue!`);
+    return;
+  }
+  
+  queue.push({
+    url: videoUrl,
+    title: cleanTitle
+  });
+  localStorage.setItem('sosacDownloads', JSON.stringify(queue));
+  
+  // Trigger storage event for instant sync across tabs
+  window.dispatchEvent(new Event('storage'));
+  
+  showNotification(`✓ Added to queue!`);
+}
+
+function goBack() {
+  // Clear event listeners before navigating
+  window.removeEventListener('load', arguments.callee);
+  window.location.href = fromPage;
+}
+</script>
+
+</body>
+</html>

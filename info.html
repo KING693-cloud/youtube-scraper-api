@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOSAC TV - Welcome</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+      min-height: 100vh; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      padding: 20px;
+    }
+    .container { 
+      background: white; 
+      padding: 40px; 
+      border-radius: 20px; 
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
+      max-width: 400px; 
+      text-align: center; 
+      animation: slideUp 0.5s ease-out;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .logo { font-size: 3em; margin-bottom: 20px; }
+    h1 { color: #333; margin-bottom: 15px; font-size: 1.8em; font-weight: bold; }
+    p { color: #666; margin-bottom: 25px; line-height: 1.6; font-size: 1em; }
+    input { 
+      width: 100%; 
+      padding: 12px; 
+      margin-bottom: 15px; 
+      border: 2px solid #e0e0e0; 
+      border-radius: 8px; 
+      font-size: 1em; 
+      transition: 0.3s; 
+    }
+    input:focus { 
+      outline: none; 
+      border-color: #667eea; 
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    button { 
+      width: 100%; 
+      padding: 12px; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+      color: white; 
+      border: none; 
+      border-radius: 8px; 
+      font-size: 1em; 
+      font-weight: bold; 
+      cursor: pointer; 
+      transition: 0.3s; 
+    }
+    button:hover { 
+      transform: translateY(-2px); 
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); 
+    }
+    button:active { 
+      transform: translateY(0); 
+    }
+    .features { 
+      text-align: left; 
+      margin-top: 25px; 
+      padding-top: 25px; 
+      border-top: 2px solid #f0f0f0; 
+      font-size: 0.9em; 
+      color: #666; 
+    }
+    .feature { 
+      display: flex; 
+      align-items: center; 
+      margin-bottom: 10px; 
+    }
+    .feature-icon { 
+      margin-right: 10px; 
+      font-size: 1.2em; 
+      min-width: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="logo">📺</div>
+  <h1>SOSAC TV</h1>
+  <p>Welcome! Enter your name to start searching unlimited YouTube videos.</p>
+  
+  <input type="text" id="userName" placeholder="Enter your name" autofocus>
+  <button onclick="startApp()">Start Watching</button>
+  
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">✅</div>
+      <div>Unlimited Free Searches</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🎵</div>
+      <div>Download MP3 & MP4</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📱</div>
+      <div>Offline Viewing</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">∞</div>
+      <div>Infinite Scroll</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// CHECK IF USER ALREADY REGISTERED - SKIP WELCOME AND GO TO MAIN APP
+if (localStorage.getItem("sosacUserName")) {
+  window.location.href = "index.html";
+}
+
+document.getElementById('userName').focus();
+document.getElementById('userName').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') startApp();
+});
+
+function startApp() {
+  const name = document.getElementById('userName').value.trim();
+  if (!name) {
+    alert('Please enter your name!');
+    return;
+  }
+  localStorage.setItem('sosacUserName', name);
+  localStorage.setItem('sosacUserPic', '');
+  window.location.href = 'index.html';
+}
+</script>
+
+</body>
+</html>

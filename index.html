@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#ff416c">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>📺</text></svg>">
+<title>SOSAC TV</title>
+
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Segoe UI',sans-serif; background:#f0f2f5; }
+
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:15px 20px; background:linear-gradient(to right,#ff416c,#ff4b2b);
+    color:white; position:sticky; top:0; z-index:50;
+  }
+
+  .user-info { display:flex; align-items:center; }
+  .user-info img {
+    width:40px; height:40px; border-radius:50%;
+    margin-right:10px; object-fit:cover;
+  }
+
+  .user-greeting { font-weight:bold; }
+
+  .header-actions { display:flex; gap:15px; align-items:center; }
+
+  .download-top {
+    font-size:1.5em; cursor:pointer;
+  }
+
+  .logout-btn {
+    background:#fff; color:#333; border:none; padding:8px 12px;
+    border-radius:6px; cursor:pointer; font-weight:bold;
+  }
+  .logout-btn:hover { background:#f0f0f0; }
+
+  .search-bar {
+    display:flex; justify-content:center; padding:20px;
+    background:#fff; box-shadow:0 2px 4px rgba(0,0,0,0.05);
+    position:sticky; top:64px; z-index:49;
+  }
+
+  .search-container { 
+    display:flex; 
+    width:100%; 
+    max-width:600px;
+    position: relative;
+  }
+
+  .search-bar input {
+    flex:1; padding:10px 15px; font-size:16px;
+    border:2px solid #ddd; border-radius:8px 0 0 8px;
+  }
+
+  .search-bar input:focus {
+    outline:none; border-color:#667eea;
+  }
+
+  .search-bar button {
+    padding:10px 20px; background:linear-gradient(to right,#2575fc,#6a11cb);
+    color:white; border:none; border-radius:0 8px 8px 0;
+    cursor:pointer; font-weight:bold;
+  }
+  .search-bar button:hover { opacity:0.9; }
+
+
+  #suggestions {
+    position:absolute; top:100%; left:0; right:0; background:white;
+    list-style:none; padding:0; margin:0; z-index:1000;
+    border-radius:0 0 8px 8px; border:2px solid #ddd; border-top:none;
+    box-shadow:0 4px 8px rgba(0,0,0,0.1); max-height:300px; overflow-y:auto;
+  }
+
+  #suggestions li { 
+    padding:12px 15px; cursor:pointer; border-bottom:1px solid #f0f0f0;
+    transition: background 0.2s ease;
+  }
+  #suggestions li:hover { background:#f5f5f5; }
+  #suggestions li:active { background:#e8e8e8; }
+  #suggestions li:last-child { border-bottom:none; }
+
+  .results {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+    gap:20px; padding:20px;
+  }
+
+  .video {
+    background:white; border-radius:12px; overflow:hidden;
+    border:3px solid #92fe9d; box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  }
+  .video:hover { box-shadow:0 4px 12px rgba(0,0,0,0.12); }
+
+  .video-thumbnail { width:100%; height:200px; overflow:hidden; background:#f0f0f0; }
+  .video-thumbnail img { width:100%; height:100%; object-fit:cover; display:block; filter:none; -webkit-filter:none; }
+  .video h3 { margin:12px 10px; font-size:0.95em; color:#333; line-height:1.3; }
+  .video-info { padding:0 10px 10px 10px; font-size:0.85em; color:#666; }
+  .video-time { color:#000; font-weight:500; margin-top:8px; }
+
+  .actions {
+    display:flex; flex-wrap:wrap; padding:10px; gap:5px;
+  }
+
+  .action-btn {
+    flex:1; min-width:70px; padding:8px; border:none; border-radius:6px;
+    cursor:pointer; font-weight:bold; font-size:0.85em;
+    display:flex; align-items:center; justify-content:center; gap:4px;
+    text-decoration:none; color:white;
+  }
+
+  .btn-watch { background:linear-gradient(to right,#667eea,#764ba2); }
+  .btn-watch:hover { opacity:0.9; }
+
+  .btn-mp3 { background:linear-gradient(to right,#ff6b6b,#ff8787); }
+  .btn-mp3:hover { opacity:0.9; }
+
+  .btn-copy { background:linear-gradient(to right,#f093fb,#f5576c); }
+  .btn-copy:hover { opacity:0.9; }
+
+  .btn-mp4 { background:linear-gradient(to right,#4ecdc4,#44a5a5); }
+  .btn-mp4:hover { opacity:0.9; }
+
+  /* Link Copy Modal */
+  .copy-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+  .copy-modal.show {
+    display: flex;
+  }
+  .copy-modal-content {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    text-align: center;
+  }
+  .copy-modal-icon { font-size: 3em; margin-bottom: 15px; }
+  .copy-modal-title { font-size: 1.5em; font-weight: bold; color: #333; margin-bottom: 10px; }
+  .copy-modal-desc { color: #666; margin-bottom: 25px; font-size: 0.95em; line-height: 1.5; }
+  .copy-link-box {
+    background: #f5f5f5;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 25px;
+    word-break: break-all;
+    font-size: 0.85em;
+    color: #333;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  .copy-modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  .copy-btn {
+    flex: 1;
+    padding: 12px 30px;
+    background: linear-gradient(to right, #f093fb, #f5576c);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.95em;
+  }
+  .copy-btn:hover { opacity: 0.9; }
+  .close-modal-btn {
+    flex: 1;
+    padding: 12px 30px;
+    background: #e0e0e0;
+    color: #333;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.95em;
+  }
+  .close-modal-btn:hover { opacity: 0.9; }
+
+  .status { padding:15px 20px; text-align:center; font-weight:bold; }
+  .status.success { color:green; background:#f0fdf4; }
+  .status.error { color:#d32f2f; background:#ffebee; }
+
+  .loading { 
+    text-align:center; padding:40px 20px;
+    min-height:100px; display:flex; align-items:center; justify-content:center;
+    opacity:0; visibility:hidden; transition:opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+  }
+  
+  .loading.show { 
+    opacity:1; visibility:visible;
+  }
+  
+  .spinner {
+    display:inline-block; width:40px; height:40px;
+    border:4px solid #f0f0f0; border-top:4px solid #667eea;
+    border-radius:50%; animation:spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform:rotate(0deg); }
+    100% { transform:rotate(360deg); }
+  }
+  
+  .loading-text {
+    margin-top:15px; color:#666; font-weight:bold; font-size:0.95em;
+  }
+  
+  #notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #4caf50;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 10000;
+    max-width: 300px;
+    font-weight: bold;
+    display: none;
+  }
+  
+  #notification.show {
+    display: block;
+  }
+  
+  
+  .spinner { 
+    border:4px solid #f3f3f3; 
+    border-top:4px solid #667eea; 
+    border-radius:50%; 
+    width:40px; height:40px; 
+    animation:spin 1s linear infinite; 
+    display:inline-block; 
+  }
+  @keyframes spin { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
+
+  .empty-results { text-align:center; padding:20px; color:#999; font-size:0.95em; }
+
+  .search-bar button:disabled { opacity:0.6; cursor:not-allowed; }
+
+  .loading-text { display:inline-block; margin-left:10px; color:#667eea; font-weight:bold; }
+
+  .skeleton { 
+    background:linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size:200% 100%; 
+    animation:loading 1.5s infinite;
+  }
+  @keyframes loading { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+
+  .skeleton-video { height:320px; border-radius:12px; margin-bottom:20px; }
+
+
+  @media (max-width: 768px) {
+    .results { grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:15px; padding:15px; }
+    .search-bar { padding:15px; }
+    .search-bar input { font-size:16px; }
+    .header-actions { gap:10px; }
+  }
+</style>
+</head>
+<body>
+<script>document.documentElement.style.background='#f0f2f5';</script>
+
+<header>
+  <div class="user-info">
+    <img id="userAvatar" src="" style="display:none;" />
+    <span class="user-greeting" id="userGreeting"></span>
+  </div>
+
+  <div class="header-actions">
+    <span class="download-top" onclick="window.location.href='download.html'" title="View Downloads">📥</span>
+    <button class="logout-btn" onclick="if(confirm('Log out?')) { localStorage.clear(); window.location.href='info.html'; }">LOG OUT</button>
+  </div>
+</header>
+
+<div class="search-bar">
+  <div class="search-container">
+    <input type="text" id="searchInput" placeholder="Search videos or paste YouTube link..." oninput="showSuggestions(this.value)">
+    <button onclick="searchVideos()">SEARCH</button>
+    <ul id="suggestions"></ul>
+  </div>
+</div>
+
+<div id="notification"></div>
+
+<!-- Copy Link Modal -->
+<div id="copyModal" class="copy-modal">
+  <div class="copy-modal-content">
+    <div class="copy-modal-icon">🔗</div>
+    <div class="copy-modal-title">Video Link Ready!</div>
+    <div class="copy-modal-desc">You're about to paste this link in a site. Copy it now!</div>
+    <div class="copy-link-box" id="copyLinkText"></div>
+    <div class="copy-modal-buttons">
+      <button class="copy-btn" onclick="copyToClipboard()">📋 COPY</button>
+      <button class="close-modal-btn" onclick="closeCopyModal()">CLOSE</button>
+    </div>
+  </div>
+</div>
+<div id="status" class="status"></div>
+<div id="results" class="results"></div>
+<div id="loadingMore" class="loading" style="display:none;"><div class="spinner"></div></div>
+
+<script>
+if (!localStorage.getItem("sosacUserName")) {
+  window.location.href = "info.html";
+}
+
+const savedName = localStorage.getItem('sosacUserName');
+const savedPic  = localStorage.getItem('sosacUserPic');
+
+document.getElementById('userGreeting').textContent = savedName ? savedName.toUpperCase() : "USER";
+
+const avatar = document.getElementById('userAvatar');
+if (savedPic && savedPic !== "") {
+  avatar.src = savedPic;
+  avatar.style.display = "block";
+}
+
+const BACKEND_URL = window.location.origin;
+
+// Restore search state from localStorage if returning from another page
+const savedState = localStorage.getItem('sosacSearchState');
+const restoringState = savedState && performance.getEntriesByType('navigation')[0]?.type !== 'navigate';
+
+let currentQuery = restoringState ? JSON.parse(savedState).query : 'videos today';
+let currentPage = restoringState ? JSON.parse(savedState).page : 1;
+let isLoading = false;
+let hasMore = restoringState ? JSON.parse(savedState).hasMore : true;
+let isTrendingPage = !restoringState;
+let savedScrollPos = restoringState ? JSON.parse(savedState).scrollPos : 0;
+
+async function fetchVideos(page) {
+  try {
+    // Add timestamp to force fresh results (prevent caching)
+    const timestamp = Date.now();
+    const url = `${BACKEND_URL}/search?q=${encodeURIComponent(currentQuery)}&page=${page}&t=${timestamp}`;
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Fetch error:', error);
+    throw error;
+  }
+}
+
+
+function addVideoToDOM(v) {
+  const box = document.createElement('div');
+  box.className = "video";
+  
+  box.innerHTML = `
+    <div class="video-thumbnail">
+      <img src="${v.thumbnail}" alt="${v.title}" onerror="this.src='https://via.placeholder.com/320x200?text=Video'">
+    </div>
+    <h3>${v.title}</h3>
+    <div class="video-info">
+      <p>${v.channelTitle || 'Unknown'} • ${v.views || 'N/A'} views</p>
+      <p class="video-time">${v.uploadedAt || ''}</p>
+    </div>
+    <div class="actions">
+      <button class="action-btn btn-watch" onclick="playVideo('${v.link}', '${v.title.replace(/'/g, "\\'")}')">▶️ WATCH</button>
+      <button class="action-btn btn-mp3" onclick="addToQueue('${v.link}','${v.title.replace(/'/g, "\\'")}')">⬇️ ADD</button>
+    </div>
+  `;
+  document.getElementById('results').appendChild(box);
+  
+  // Save state after each video added
+  saveSearchState();
+}
+
+function showNotification(message) {
+  const notif = document.getElementById('notification');
+  notif.textContent = message;
+  notif.classList.add('show');
+  setTimeout(() => {
+    notif.classList.remove('show');
+  }, 2000);
+}
+
+function showCopyModal(videoUrl, videoTitle) {
+  document.getElementById('copyLinkText').textContent = videoUrl;
+  document.getElementById('copyModal').classList.add('show');
+}
+
+function closeCopyModal() {
+  document.getElementById('copyModal').classList.remove('show');
+}
+
+function copyToClipboard() {
+  const linkText = document.getElementById('copyLinkText').textContent;
+  navigator.clipboard.writeText(linkText).then(() => {
+    showNotification('✓ Link copied to clipboard!');
+    setTimeout(() => closeCopyModal(), 500);
+  }).catch(err => {
+    showNotification('❌ Failed to copy');
+  });
+}
+
+// Auto-load videos on page load
+function initPage() {
+  console.log('🔄 Page loaded, fetching videos for:', currentQuery);
+  // Remove loading screen and immediately start showing videos
+  const loadingScreen = document.getElementById('loadingScreen');
+  if (loadingScreen) loadingScreen.style.display = 'none';
+  
+  setTimeout(() => {
+    searchVideos();
+  }, 300);
+}
+
+
+async function searchVideos(){
+  const inputValue = document.getElementById('searchInput').value.trim();
+  
+  // Check if input is a YouTube URL
+  const youtubeUrlRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
+  const isYouTubeUrl = youtubeUrlRegex.test(inputValue);
+  
+  if (isYouTubeUrl) {
+    // Fetch single video by URL
+    currentPage = 1;
+    isLoading = false;
+    hasMore = false;
+    document.getElementById('results').innerHTML = "";
+    document.getElementById('status').innerHTML = '<div class="status"><div class="spinner"></div><div class="loading-text">Loading video...</div></div>';
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/video-by-url?url=${encodeURIComponent(inputValue)}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch video');
+      
+      const data = await response.json();
+      
+      if (!data.videos || data.videos.length === 0) {
+        document.getElementById('status').innerHTML = `<div class="status error">✗ Video not found. Check the URL.</div>`;
+        return;
+      }
+      
+      document.getElementById('status').innerHTML = `<div class="status success">🎬 Video Found</div>`;
+      data.videos.forEach(v => addVideoToDOM(v));
+      currentQuery = inputValue;
+      saveSearchState();
+    } catch (error) {
+      console.error('Fetch error:', error);
+      document.getElementById('status').innerHTML = `<div class="status error">✗ Failed to load video. Check the URL.</div>`;
+    }
+    return;
+  }
+  
+  // Regular search
+  if (!inputValue && currentPage > 1) {
+    // If it's pagination and no search, use current query
+  } else if (inputValue) {
+    currentQuery = inputValue;
+    isTrendingPage = false;
+  } else {
+    // Empty search - show trending videos
+    currentQuery = 'trending videos';
+    isTrendingPage = true;
+  }
+  
+  if (!currentQuery) {
+    alert('Please enter a search query');
+    return;
+  }
+  
+  currentPage = 1;
+  isLoading = false;
+  hasMore = true;
+  document.getElementById('results').innerHTML = "";
+  document.getElementById('status').innerHTML = '<div class="status"><div class="spinner"></div><div class="loading-text">Loading...</div></div>';
+
+  try {
+    const data = await fetchVideos(1);
+
+    if (!data.videos || data.videos.length === 0) {
+      document.getElementById('results').innerHTML = '<div class="empty-results">No videos found. Try another search.</div>';
+      document.getElementById('status').innerHTML = "";
+      return;
+    }
+
+    // No count - keep it anonymous and infinite
+    document.getElementById('status').innerHTML = `<div class="status success">🎬 Videos</div>`;
+
+    data.videos.forEach(v => addVideoToDOM(v));
+    
+    currentPage = 1;
+    hasMore = data.hasMore;
+    isTrendingPage = false;
+    saveSearchState();
+  } catch (error) {
+    document.getElementById('results').innerHTML = "";
+    document.getElementById('status').innerHTML = `<div class="status error">✗ Search failed. Try searching for "music".</div>`;
+  }
+}
+
+async function loadMore() {
+  if (isLoading || !hasMore) return;
+  isLoading = true;
+  const loader = document.getElementById('loadingMore');
+  loader.classList.add('show');
+
+  try {
+    currentPage++;
+    const data = await fetchVideos(currentPage);
+
+    if (data.videos && data.videos.length > 0) {
+      data.videos.forEach(v => addVideoToDOM(v));
+      hasMore = true;
+    } else {
+      hasMore = true;
+    }
+    saveSearchState();
+  } catch (error) {
+    currentPage--;
+  } finally {
+    isLoading = false;
+    loader.classList.remove('show');
+  }
+}
+
+let scrollTimeout;
+window.addEventListener('scroll', () => {
+  clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(() => {
+    if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500 && !isLoading && hasMore) {
+      loadMore();
+    }
+  }, 100);
+}, { passive: true });
+
+function playVideo(videoUrl, title) {
+  saveSearchState();
+  // Navigate to watch page with autoplay enabled
+  window.location.href = `watch.html?url=${encodeURIComponent(videoUrl)}&title=${encodeURIComponent(title)}&from=index.html&autoplay=1`;
+}
+
+function saveSearchState() {
+  const state = {
+    query: currentQuery,
+    page: currentPage,
+    hasMore: hasMore,
+    scrollPos: window.scrollY,
+    html: document.getElementById('results').innerHTML
+  };
+  localStorage.setItem('sosacSearchState', JSON.stringify(state));
+}
+
+function restoreSearchState() {
+  const savedState = localStorage.getItem('sosacSearchState');
+  if (savedState) {
+    const state = JSON.parse(savedState);
+    currentQuery = state.query;
+    currentPage = state.page;
+    hasMore = state.hasMore;
+    document.getElementById('results').innerHTML = state.html;
+    setTimeout(() => window.scrollTo(0, state.scrollPos), 100);
+    return true;
+  }
+  return false;
+}
+
+function addToQueue(videoUrl, title) {
+  let queue = JSON.parse(localStorage.getItem('sosacDownloads')) || [];
+  const videoTitle = title.replace(/[<>:"/\\|?*]/g, '');
+  
+  // Check if video already in queue
+  const exists = queue.some(v => v.url === videoUrl);
+  if (exists) {
+    showNotification(`⚠️ Already in queue!`);
+    return;
+  }
+  
+  queue.push({
+    url: videoUrl,
+    title: videoTitle,
+    addedAt: new Date().toISOString()
+  });
+  localStorage.setItem('sosacDownloads', JSON.stringify(queue));
+  
+  // Trigger storage event for instant sync
+  window.dispatchEvent(new Event('storage'));
+  
+  showNotification(`✓ Added to queue! Go to 📥 Downloads to download.`);
+}
+
+function showSuggestions(query){
+  const list = document.getElementById('suggestions');
+  if(!query || query.length < 2) {
+    list.innerHTML = "";
+    return;
+  }
+
+  const callback = "suggestCallback_" + Date.now();
+  window[callback] = (data) => {
+    list.innerHTML = "";
+    if (data && data[1]) {
+      data[1].slice(0, 8).forEach(s => {
+        const li = document.createElement("li");
+        li.textContent = s[0];
+        li.onclick = (e) => {
+          e.stopPropagation();
+          document.getElementById('searchInput').value = s[0];
+          closeSuggestions();
+          searchVideos();
+        };
+        list.appendChild(li);
+      });
+    }
+  };
+
+  const script = document.createElement("script");
+  script.src = `https://suggestqueries.google.com/complete/search?client=youtube&ds=yt&q=${encodeURIComponent(query)}&callback=${callback}`;
+  script.onerror = () => list.innerHTML = "";
+  document.body.appendChild(script);
+}
+
+function closeSuggestions(){
+  document.getElementById('suggestions').innerHTML = "";
+}
+
+// Close suggestions when clicking anywhere
+document.addEventListener('click', (e) => {
+  const searchContainer = document.querySelector('.search-container');
+  if (searchContainer && !searchContainer.contains(e.target)) {
+    closeSuggestions();
+  }
+});
+
+function logout(){
+  if (confirm('Are you sure you want to log out?')) {
+    localStorage.removeItem('sosacUserName');
+    localStorage.removeItem('sosacUserPic');
+    localStorage.removeItem('sosacDownloads');
+    window.location.href = "info.html";
+  }
+}
+
+// Date filter removed - using infinite scroll for all content
+
+document.getElementById('searchInput').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') searchVideos();
+});
+
+// Scroll listener above handles infinite scroll - no need for IntersectionObserver
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+}
+
+// Check if returning from another page
+window.addEventListener('pageshow', () => {
+  if (restoreSearchState()) {
+    document.getElementById('searchInput').value = currentQuery;
+  } else {
+    searchVideos();
+  }
+});
+
+// Save state when leaving page
+window.addEventListener('pagehide', () => {
+  saveSearchState();
+});
+
+// Also save on scroll
+window.addEventListener('scroll', () => {
+  saveSearchState();
+}, { passive: true });
+
+// Removed: Auto-refresh functionality not needed for anonymous infinite browsing
+
+// Clean up when leaving page
+window.addEventListener('beforeunload', () => {
+  // Clear any pending operations
+  isLoading = false;
+});
+</script>
+
+</body>
+</html>
